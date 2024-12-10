@@ -54,7 +54,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm config set cache ~/.npm
-          npm ci
+          npm i
 
       - name: Run ${{ matrix.test_type }} tests
         run: |
