@@ -1,3 +1,6 @@
+# This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
 name: Node.js CI
 
 on:
@@ -5,56 +8,59 @@ on:
     branches:
       - '*'
   pull_request:
-    branches:
-      - master
+    branches: [ master ]
 
 jobs:
-  prepare:
-    runs-on: ubuntu-latest
-    outputs:
-      node_version: ${{ steps.nvm.outputs.NVMRC }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: Read .nvmrc
-        id: nvm
-        run: echo "NVMRC=$(cat .nvmrc)" >> $GITHUB_OUTPUT
-
-  test:
-    needs: prepare
+  build:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
       matrix:
-        test_type:
-          - unit
-          - nestjs
-          - mocha
+        test-command:
+          - test
+          - test:nestjs
+          - test:mocha
+
+
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
 
-      - name: Install Docker Compose
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y docker-compose
+      - name: Read .nvmrc
+        run: echo "##[set-output name=NVMRC;]$(cat .nvmrc)"
+        id: nvm
 
-      - name: Use Node.js
-        uses: actions/setup-node@v3
+      - name: Use Node.js (.nvmrc)
+        uses: actions/setup-node@v2
         with:
-          node-version: ${{ needs.prepare.outputs.node_version }}
+          node-version: "${{ steps.nvm.outputs.NVMRC }}"
+          cache: 'npm'
 
-      - name: Install dependencies
-        run: npm clean-install
+      - name: Attempt to restore the cache
+        uses: actions/cache@v3
+        id: cache
+        with:
+          path: ./node_modules
+          # The hashFiles function is used to generate a unique key for the cache based on the contents of the package-lock.json file.
+          # This ensures that the cache is only invalidated when the dependencies of the project change.
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          # 'restore-keys' are fallback keys used if a cache miss occurs on the 'key' field. They provide a way to restore
+          # a cache from a previous state that doesn't match exactly with the 'key'. They are checked sequentially until a cache hit is found.
+          # A list of restore-keys is useful when you are restoring a cache from another branch because restore-keys can partially match cache keys.
+          restore-keys: |
+            ${{ runner.os }}-node-
+            ${{ runner.os }}-
 
-      - name: Run ${{ matrix.test_type }} tests
-        run: |
-          case "${{ matrix.test_type }}" in
-            "unit")
-              npm test
-              ;;
-            "nestjs")
-              npm run test:nestjs
-              ;;
-            "mocha")
-              npm run test:mocha
-              ;;
-          esac
+      - name: Install dependencies if cache miss
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Save the cache after installing dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache@v3
+        with:
+          path: ./node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+
+      - uses: KengoTODA/actions-setup-docker-compose@v1
+
+      - name: Run tests
+        run: npm run ${{ matrix.test-command }}
