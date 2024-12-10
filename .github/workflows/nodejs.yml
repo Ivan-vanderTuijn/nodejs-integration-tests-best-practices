@@ -55,7 +55,9 @@ jobs:
   paths-filter:
     runs-on: ubuntu-latest
     outputs:
-      output1: ${{ steps.filter.outputs.workflows }}
+      unit-test: ${{ steps.filter.outputs.unittests }}
+      nestjs-test: ${{ steps.filter.outputs.nestjstests }}
+      mocha-test: ${{ steps.filter.outputs.mochatests }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -69,13 +71,13 @@ jobs:
             mocha-test:
               - 'recipes/mocha/**'
       # run only if 'workflows' files were changed
-      - name: unit tests
+      - name: unittests
         if: steps.filter.outputs.unit-test == 'true'
         run: echo "Unit Test file"
-      - name: nestjs tests
+      - name: nestjstests
         if: steps.filter.outputs.nestjs-test == 'true'
         run: echo "Nestjs Test file"
-      - name: mocha tests
+      - name: mochatests
         if: steps.filter.outputs.mocha-test == 'true'
         run: echo "Mocha Test file"
 
