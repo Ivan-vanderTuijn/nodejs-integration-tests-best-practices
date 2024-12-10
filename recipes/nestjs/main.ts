@@ -7,7 +7,7 @@ let app: INestApplication;
 export const initializeWebServer = async () => {
   app = await NestFactory.create(AppModule);
 
-  // ➿ Port is required in Nest.js, we can send 0 to get a available dynamic port
+  // ➿ Port is required in Nest.js, we can send 0 to get a available dynamic port gjhdjlkdshgvfllghfkze
   await app.listen(0);
 
   return app.getHttpServer().address();
