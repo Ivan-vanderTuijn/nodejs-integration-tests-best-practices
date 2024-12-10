@@ -52,7 +52,9 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm config set cache ~/.npm
+          npm ci
 
       - name: Run ${{ matrix.test_type }} tests
         run: |
