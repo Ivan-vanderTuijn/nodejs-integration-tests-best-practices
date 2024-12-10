@@ -60,7 +60,8 @@ jobs:
           path: ./node_modules
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
 
-      - uses: KengoTODA/actions-setup-docker-compose@v1
+      - run: sudo apt-get update
+      - run: sudo apt-get install -y docker-compose
 
       - name: Run tests
         run: npm run ${{ matrix.test-command }}
