@@ -52,9 +52,39 @@ jobs:
           path: ./node_modules
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
 
+  paths-filter:
+    runs-on: ubuntu-latest
+    outputs:
+      output1: ${{ steps.filter.outputs.workflows }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            unit-test:
+              - 'recipes/**'
+            nestjs-test:
+              - 'recipes/nestjs/**'
+            mocha-test:
+              - 'recipes/mocha/**'
+      # run only if 'workflows' files were changed
+      - name: unit tests
+        if: steps.filter.outputs.unit-test == 'true'
+        run: echo "Unit Test file"
+      - name: nestjs tests
+        if: steps.filter.outputs.nestjs-test == 'true'
+        run: echo "Nestjs Test file"
+      - name: mocha tests
+        if: steps.filter.outputs.mocha-test == 'true'
+        run: echo "Mocha Test file"
+
   unit-test:
     runs-on: ubuntu-latest
-    needs: build
+    needs:
+      - build
+      - paths-filter
+    if: needs.paths-filter.outputs.unit-test == 'true'
     steps:
       - uses: actions/checkout@v2
 
@@ -92,7 +122,10 @@ jobs:
 
   test-nestjs:
     runs-on: ubuntu-latest
-    needs: unit-test
+    needs:
+      - unit-test
+      - paths-filter
+    if: needs.paths-filter.outputs.nestjs-test == 'true'
     steps:
       - uses: actions/checkout@v2
 
@@ -130,7 +163,10 @@ jobs:
 
   test-mocha:
     runs-on: ubuntu-latest
-    needs: test-nestjs
+    needs:
+      - test-nestjs
+      - paths-filter
+    if: needs.paths-filter.outputs.mocha-test == 'true'
     steps:
       - uses: actions/checkout@v2
 
